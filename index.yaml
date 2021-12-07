@@ -1,0 +1,14 @@
+apiVersion: v1
+entries:
+  spire:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2021-12-07T20:32:54.450202847Z"
+    description: A Helm chart for Kubernetes
+    digest: 4ddef7f66a09f28ed1bd972712e46f949a2b5b3ff3a5cf9992cbde98729938fa
+    name: spire
+    type: application
+    urls:
+    - https://github.com/sudo-bmitch/helm-charts/releases/download/spire-0.0.3/spire-0.0.3.tgz
+    version: 0.0.3
+generated: "2021-12-07T20:32:54.307723403Z"
