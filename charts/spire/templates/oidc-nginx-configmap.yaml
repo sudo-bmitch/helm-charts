@@ -8,7 +8,7 @@ metadata:
 data:
   oidc.conf: |
     upstream {{ .Values.oidc.discoveryDomain }} {
-      server unix:/run/spire/sockets/oidc.sock;
+      server unix:/tmp/spire-server/private/oidc.sock;
     }
     server {
       # ssl config

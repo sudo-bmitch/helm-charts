@@ -9,7 +9,7 @@ data:
     server {
       bind_address = "0.0.0.0"
       bind_port = "8081"
-      socket_path = "/run/spire/sockets/server.sock"
+      # socket_path = "/run/spire/sockets/server.sock"
       trust_domain = "{{ .Values.server.trustDomain }}"
       data_dir = "/run/spire/data"
       log_level = "DEBUG"
@@ -46,7 +46,7 @@ data:
         }
       }
 
-      NodeAttestor "k8s_sat" {
+      NodeAttestor "k8s_psat" {
         plugin_data {
           clusters = {
             "{{ .Values.server.clusterName }}" = {

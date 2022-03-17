@@ -17,10 +17,10 @@ data:
         email = "{{ .Values.oidc.acme.email }}"
     }
     {{- else }}
-    listen_socket_path = "/run/spire/sockets/oidc.sock"
+    listen_socket_path = "/tmp/spire-server/private/oidc.sock"
     {{- end }}
     server_api {
-      address = "unix:///run/spire/sockets/server.sock"
+      address = "unix:///tmp/spire-server/private/api.sock"
     }
 ---
 {{- end }}

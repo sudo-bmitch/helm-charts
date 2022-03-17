@@ -11,13 +11,13 @@ data:
       log_level = "DEBUG"
       server_address = "{{ include "spire.fullname" . }}-server"
       server_port = "8081"
-      socket_path = "/run/spire/sockets/agent.sock"
+      # socket_path = "/run/spire/sockets/agent.sock"
       trust_bundle_path = "/run/spire/bundle/bundle.crt"
       trust_domain = "{{ index .Values.server.trustDomain }}"
     }
 
     plugins {
-      NodeAttestor "k8s_sat" {
+      NodeAttestor "k8s_psat" {
         plugin_data {
           cluster = "{{ .Values.server.clusterName }}"
         }
@@ -37,10 +37,10 @@ data:
         }
       }
 
-      WorkloadAttestor "unix" {
-          plugin_data {
-          }
-      }
+      # WorkloadAttestor "unix" {
+      #     plugin_data {
+      #     }
+      # }
     }
 
     health_checks {
