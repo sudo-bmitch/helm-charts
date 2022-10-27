@@ -37,7 +37,7 @@ spec:
           # This is a small image with wait-for-it, choose whatever image
           # you prefer that waits for a service to be up. This image is built
           # from https://github.com/lqhl/wait-for-it
-          image: {{ .Values.image.repository }}/wait-for-it
+          image: {{ .Values.image.waitForIt }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args: ["-t", "30", "{{ include "spire.fullname" . }}-server:{{ .Values.service.server.port }}"]
       containers:
@@ -54,12 +54,10 @@ spec:
             - name: spire-bundle
               mountPath: /run/spire/bundle
             - name: spire-agent-socket
-              mountPath: /tmp/spire-agent/public
+              mountPath: {{ .Values.agent.sockDir }}
               readOnly: false
             - name: spire-token
               mountPath: /var/run/secrets/tokens
-            - name: spire-agent-socket-dir
-              mountPath: /run/spire/sockets
           livenessProbe:
             httpGet:
               path: /live
@@ -76,13 +74,14 @@ spec:
             periodSeconds: 5
           resources:
             {{- toYaml .Values.resources.agent | nindent 12 }}
-                # This is the container which runs the SPIFFE CSI driver.
+        {{- if .Values.csi.enabled }}
+        # This is the container which runs the SPIFFE CSI driver.
         - name: spiffe-csi-driver
-          image: ghcr.io/spiffe/spiffe-csi-driver:nightly
+          image: {{ .Values.image.repository }}/spiffe-csi-driver:{{ .Values.image.tagCSI }}
           imagePullPolicy: IfNotPresent
           args: [
-            "-workload-api-socket-dir", "/spire-agent-socket",
-            "-csi-socket-path", "/spiffe-csi/csi.sock",
+            "-workload-api-socket-dir", "{{ .Values.agent.sockDir }}",
+            "-csi-socket-path", "/run/spiffe-csi/csi.sock",
           ]
           env:
             # The CSI driver needs a unique node ID. The node name can be
@@ -94,37 +93,38 @@ spec:
           volumeMounts:
             # The volume containing the SPIRE agent socket. The SPIFFE CSI
             # driver will mount this directory into containers.
-            - mountPath: /spire-agent-socket
-              name: spire-agent-socket-dir
+            - name: spire-agent-socket
+              mountPath: {{ .Values.agent.sockDir }}
               readOnly: true
             # The volume that will contain the CSI driver socket shared
             # with the kubelet and the driver registrar.
-            - mountPath: /spiffe-csi
-              name: spiffe-csi-socket-dir
+            - name: spire-csi-socket-dir
+              mountPath: /run/spiffe-csi
             # The volume containing mount points for containers.
-            - mountPath: /var/lib/kubelet/pods
+            - name: mountpoint-dir
+              mountPath: /var/lib/kubelet/pods
               mountPropagation: Bidirectional
-              name: mountpoint-dir
           securityContext:
             privileged: true
         # This container runs the CSI Node Driver Registrar which takes care
         # of all the little details required to register a CSI driver with
         # the kubelet.
         - name: node-driver-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v2.0.1
+          image: {{ .Values.image.csiRegistrar }}
           imagePullPolicy: IfNotPresent
           args: [
-            "-csi-address", "/spiffe-csi/csi.sock",
+            "-csi-address", "/run/spiffe-csi/csi.sock",
             "-kubelet-registration-path", "/var/lib/kubelet/plugins/csi.spiffe.io/csi.sock",
           ]
           volumeMounts:
             # The registrar needs access to the SPIFFE CSI driver socket
-            - mountPath: /spiffe-csi
-              name: spiffe-csi-socket-dir
+            - name: spire-csi-socket-dir
+              mountPath: /run/spiffe-csi
             # The registrar needs access to the Kubelet plugin registration
             # directory
             - name: kubelet-plugin-registration-dir
               mountPath: /registration
+        {{- end }}
       volumes:
         - name: spire-config
           configMap:
@@ -132,10 +132,6 @@ spec:
         - name: spire-bundle
           configMap:
             name: {{ include "spire.fullname" . }}-bundle
-        - name: spire-agent-socket
-          hostPath:
-            path: /run/spire/sockets
-            type: DirectoryOrCreate
         - name: spire-token
           projected:
             sources:
@@ -150,12 +146,13 @@ spec:
         # directory on the node that was mounted into workload containers by
         # the CSI driver belongs to the old pod instance and is no longer
         # valid).
-        - name: spire-agent-socket-dir
+        - name: spire-agent-socket
           hostPath:
-            path: /run/spire/agent-sockets
+            path: {{ .Values.agent.hostDir }}
             type: DirectoryOrCreate
+        {{- if .Values.csi.enabled }}
         # This volume is where the socket for kubelet->driver communication lives
-        - name: spiffe-csi-socket-dir
+        - name: spire-csi-socket-dir
           hostPath:
             path: /var/lib/kubelet/plugins/csi.spiffe.io
             type: DirectoryOrCreate
@@ -170,6 +167,7 @@ spec:
           hostPath:
             path: /var/lib/kubelet/plugins_registry
             type: Directory
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
