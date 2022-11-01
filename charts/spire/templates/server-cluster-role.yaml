@@ -13,9 +13,6 @@ rules:
 - apiGroups: [""]
   resources: ["nodes"]
   verbs: ["get"]
-- apiGroups: ["coordination.k8s.io"]
-  resources: ["leases"]
-  verbs: ["create", "update", "delete", "get", "list", "watch"]
   
 ---
 # Binds above cluster role to spire-server service account
